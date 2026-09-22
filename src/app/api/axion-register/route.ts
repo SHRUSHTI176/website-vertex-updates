@@ -1,4 +1,4 @@
-// app/api/lumous-register/route.ts
+// app/api/axion-register/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { transporter } from "@/lib/mailer";
@@ -7,6 +7,10 @@ interface TeamMember {
   name: string;
   usn: string;
   phone?: string;
+  gender: string;
+  collegeName: string;
+  year: string;
+  department: string;
 }
 
 interface RegisterBody {
@@ -15,6 +19,10 @@ interface RegisterBody {
   email: string;
   phone?: string;
   eventSlug: string;
+  gender: string;
+  collegeName: string;
+  year: string;
+  department: string;
   team?: {
     name?: string;
     members?: TeamMember[];
@@ -27,16 +35,10 @@ const eventRules: Record<
   string,
   { min?: number; max?: number; exact?: number; feeType: string; fee?: number }
 > = {
-  ideathon:    { min: 2, max: 3,  feeType: "free" },
-  bgmi:        { min: 1, max: 4,  feeType: "per_team", fee: 50 },
-  igp:         { min: 1, max: 2,  feeType: "free" },
-  reeluminati: { min: 1, max: 4,  feeType: "free" },
-  cricket:     { min: 8, max: 11, feeType: "per_team", fee: 150 },
-  volleyball:  { min: 6, max: 9,  feeType: "per_team", fee: 100 },
-  lagori:      { exact: 6,        feeType: "free" },
-  dodgeball:   { exact: 6,        feeType: "free" },
-  cooking:     { exact: 2,        feeType: "per_team", fee: 50 },
-  trapezoid:   { exact: 2,        feeType: "per_team", fee: 150 },
+  "hardware-expo":   { min: 2, max: 4, feeType: "per_team", fee: 100 },
+  protopitch:        { min: 2, max: 4, feeType: "per_team", fee: 100 },
+  "vector-chase":    { min: 2, max: 3, feeType: "per_team", fee: 100 },
+  "embedded-enigma": { exact: 2, feeType: "per_team", fee: 150 },
 };
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -47,11 +49,21 @@ function validateBody(body: Partial<RegisterBody>): string | null {
   if (!body.email?.includes("@"))                return "Invalid email";
   if (!body.eventSlug?.trim())                   return "An event must be selected";
 
+  const validGenders = ["Male", "Female", "Other", "Prefer not to say"];
+  if (!body.gender || !validGenders.includes(body.gender)) return "Invalid gender";
+  if (!body.collegeName || body.collegeName.trim().length < 3) return "College name must be at least 3 characters";
+  if (!body.year || !["1", "2", "3", "4"].includes(body.year)) return "Invalid year";
+  if (!body.department?.trim()) return "Department is required";
+
   const members = body.team?.members;
   if (members && Array.isArray(members)) {
     for (const m of members) {
       if (!m.name?.trim())        return "All team members must have a name";
       if (!USN_REGEX.test(m.usn)) return `Invalid USN for member: ${m.name}`;
+      if (!m.gender || !validGenders.includes(m.gender)) return `Invalid gender for member: ${m.name}`;
+      if (!m.collegeName || m.collegeName.trim().length < 3) return `Invalid college name for member: ${m.name}`;
+      if (!m.year || !["1", "2", "3", "4"].includes(m.year)) return `Invalid year for member: ${m.name}`;
+      if (!m.department?.trim()) return `Invalid department for member: ${m.name}`;
     }
   }
   return null;
@@ -77,7 +89,7 @@ function logError(tag: string, error: unknown) {
 // Instead we do sequential awaits and call this helper to undo on failure.
 
 async function rollbackRegistration(registrationId: string) {
-  console.warn(`[lumous-register] Rolling back registration: ${registrationId}`);
+  console.warn(`[axion-register] Rolling back registration: ${registrationId}`);
   await prisma.participation.deleteMany({ where: { registrationId } }).catch((e) =>
     logError("rollback/participation", e)
   );
@@ -87,7 +99,7 @@ async function rollbackRegistration(registrationId: string) {
   await prisma.registration.delete({ where: { id: registrationId } }).catch((e) =>
     logError("rollback/registration", e)
   );
-  console.warn(`[lumous-register] Rollback complete for: ${registrationId}`);
+  console.warn(`[axion-register] Rollback complete for: ${registrationId}`);
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -99,11 +111,11 @@ export async function POST(req: Request) {
     // ── 1. Basic field validation ────────────────────────────────────────────
     const validationError = validateBody(body);
     if (validationError) {
-      console.warn("[lumous-register] Validation failed:", validationError);
+      console.warn("[axion-register] Validation failed:", validationError);
       return NextResponse.json({ message: validationError }, { status: 400 });
     }
 
-    const { fullName, eventSlug, team: teamData } = body;
+    const { fullName, eventSlug, team: teamData, gender, collegeName, year, department } = body;
     const usn   = body.usn.trim().toUpperCase();
     const email = body.email.trim().toLowerCase();
     const phone = body.phone?.trim() ?? undefined;
@@ -113,6 +125,10 @@ export async function POST(req: Request) {
           name:  m.name.trim(),
           usn:   m.usn.trim().toUpperCase(),
           phone: m.phone?.trim() ?? undefined,
+          gender: m.gender,
+          collegeName: m.collegeName,
+          year: m.year,
+          department: m.department,
         }))
       : [];
 
@@ -120,20 +136,20 @@ export async function POST(req: Request) {
     const isTeamRegistration = totalMembers > 1;
 
     console.log(
-      `[lumous-register] Attempt | USN: ${usn} | Event: ${eventSlug} | Members: ${totalMembers}`
+      `[axion-register] Attempt | USN: ${usn} | Event: ${eventSlug} | Members: ${totalMembers}`
     );
 
     // ── 2. Resolve event ─────────────────────────────────────────────────────
     const event = await prisma.event.findUnique({ where: { slug: eventSlug } });
     if (!event) {
-      console.warn(`[lumous-register] Event not found: ${eventSlug}`);
+      console.warn(`[axion-register] Event not found: ${eventSlug}`);
       return NextResponse.json({ message: "Event not found." }, { status: 404 });
     }
 
     // ── 3. Resolve & enforce event rules ─────────────────────────────────────
     const rule = eventRules[eventSlug.toLowerCase()];
     if (!rule) {
-      console.error(`[lumous-register] No rules configured for event: ${eventSlug}`);
+      console.error(`[axion-register] No rules configured for event: ${eventSlug}`);
       return NextResponse.json(
         { message: "Rules for this event are not configured." },
         { status: 500 }
@@ -144,7 +160,7 @@ export async function POST(req: Request) {
     const allUsns    = [usn, ...normalizedMembers.map((m) => m.usn)];
     const uniqueUsns = new Set(allUsns);
     if (uniqueUsns.size !== allUsns.length) {
-      console.warn(`[lumous-register] Duplicate USNs detected: ${allUsns}`);
+      console.warn(`[axion-register] Duplicate USNs detected: ${allUsns}`);
       return NextResponse.json(
         { message: "Duplicate USNs are not allowed in the same team." },
         { status: 400 }
@@ -155,7 +171,7 @@ export async function POST(req: Request) {
     if (rule.exact !== undefined) {
       if (totalMembers !== rule.exact) {
         console.warn(
-          `[lumous-register] Size mismatch. Required: ${rule.exact}, Got: ${totalMembers}`
+          `[axion-register] Size mismatch. Required: ${rule.exact}, Got: ${totalMembers}`
         );
         return NextResponse.json(
           {
@@ -167,7 +183,7 @@ export async function POST(req: Request) {
     } else if (rule.min !== undefined && rule.max !== undefined) {
       if (totalMembers < rule.min || totalMembers > rule.max) {
         console.warn(
-          `[lumous-register] Size out of range. Allowed: ${rule.min}–${rule.max}, Got: ${totalMembers}`
+          `[axion-register] Size out of range. Allowed: ${rule.min}–${rule.max}, Got: ${totalMembers}`
         );
         return NextResponse.json(
           {
@@ -180,7 +196,7 @@ export async function POST(req: Request) {
 
     // Team name required for multi-member registrations
     if (isTeamRegistration && !teamData?.name?.trim()) {
-      console.warn(`[lumous-register] Team name missing for: ${eventSlug}`);
+      console.warn(`[axion-register] Team name missing for: ${eventSlug}`);
       return NextResponse.json(
         { message: "Team name is required for team events." },
         { status: 400 }
@@ -197,7 +213,7 @@ export async function POST(req: Request) {
     const totalAmount = amountINR * 100; // paise
 
     console.log(
-      `[lumous-register] Amount: ₹${amountINR} (${totalAmount} paise) | Free: ${totalAmount === 0}`
+      `[axion-register] Amount: ₹${amountINR} (${totalAmount} paise) | Free: ${totalAmount === 0}`
     );
 
     // ── 5. Upsert leader participant ─────────────────────────────────────────
@@ -205,18 +221,18 @@ export async function POST(req: Request) {
     try {
       participant = await prisma.participant.upsert({
         where:  { usn },
-        create: { name: fullName, usn, email, emailVerified: true, phoneNo: phone },
-        update: { name: fullName, email, emailVerified: true, phoneNo: phone },
+        create: { name: fullName, usn, email, emailVerified: true, phoneNo: phone, gender, collegeName, year, department },
+        update: { name: fullName, email, emailVerified: true, phoneNo: phone, gender, collegeName, year, department },
       });
     } catch (err) {
-      logError("lumous-register / upsert leader", err);
+      logError("axion-register / upsert leader", err);
       return NextResponse.json(
         { message: "Failed to save your details. Please try again." },
         { status: 500 }
       );
     }
 
-    console.log(`[lumous-register] Leader participant ID: ${participant.id}`);
+    console.log(`[axion-register] Leader participant ID: ${participant.id}`);
 
     // ── 6. Block duplicate confirmed registrations for leader ────────────────
     const confirmedRegistrationIds = await prisma.registration
@@ -236,7 +252,7 @@ export async function POST(req: Request) {
 
     if (confirmedParticipation) {
       console.warn(
-        `[lumous-register] Leader already confirmed | participantId: ${participant.id} | event: ${eventSlug}`
+        `[axion-register] Leader already confirmed | participantId: ${participant.id} | event: ${eventSlug}`
       );
       return NextResponse.json(
         { message: `You are already registered for ${event.name}.` },
@@ -256,10 +272,10 @@ export async function POST(req: Request) {
         },
       });
       console.log(
-        `[lumous-register] Deleted ${leaderDelete.count} stale leader participation(s)`
+        `[axion-register] Deleted ${leaderDelete.count} stale leader participation(s)`
       );
     } catch (err) {
-      logError("lumous-register / delete stale leader participations", err);
+      logError("axion-register / delete stale leader participations", err);
       return NextResponse.json(
         { message: "Failed to clean up your previous registration attempt. Please try again." },
         { status: 500 }
@@ -279,7 +295,7 @@ export async function POST(req: Request) {
           select: { id: true },
         });
       } catch (err) {
-        logError("lumous-register / find member participants", err);
+        logError("axion-register / find member participants", err);
         return NextResponse.json(
           { message: "Failed to look up team member details. Please try again." },
           { status: 500 }
@@ -304,15 +320,17 @@ const confirmedMemberParticipations = await prisma.participation.findMany({
 });
 
 if (confirmedMemberParticipations.length > 0) {
-  const conflicting = confirmedMemberParticipations.map((p) => ({
-    name:     p.participant.name,
-    usn:      p.participant.usn,
-    phone:    p.participant.phoneNo ?? "N/A",
-    teamName: p.team?.name ?? "Solo",
-  }));
+  const conflicting = confirmedMemberParticipations
+    .filter((p) => p.participant != null)
+    .map((p) => ({
+      name:     p.participant!.name,
+      usn:      p.participant!.usn,
+      phone:    p.participant!.phoneNo ?? "N/A",
+      teamName: p.team?.name ?? "Solo",
+    }));
 
   console.warn(
-    `[lumous-register] ${conflicting.length} member(s) already confirmed for ${eventSlug}:`,
+    `[axion-register] ${conflicting.length} member(s) already confirmed for ${eventSlug}:`,
     conflicting
   );
 
@@ -335,10 +353,10 @@ if (confirmedMemberParticipations.length > 0) {
             },
           });
           console.log(
-            `[lumous-register] Deleted ${memberDelete.count} stale member participation(s)`
+            `[axion-register] Deleted ${memberDelete.count} stale member participation(s)`
           );
         } catch (err) {
-          logError("lumous-register / delete stale member participations", err);
+          logError("axion-register / delete stale member participations", err);
           return NextResponse.json(
             {
               message:
@@ -362,7 +380,7 @@ if (confirmedMemberParticipations.length > 0) {
       if (orphaned.length > 0) {
         const orphanedIds = orphaned.map((r) => r.id);
         console.log(
-          `[lumous-register] Cancelling ${orphaned.length} orphaned PAYMENT_PENDING registration(s): ${orphanedIds}`
+          `[axion-register] Cancelling ${orphaned.length} orphaned PAYMENT_PENDING registration(s): ${orphanedIds}`
         );
 
         await prisma.payment.updateMany({
@@ -376,7 +394,7 @@ if (confirmedMemberParticipations.length > 0) {
         });
       }
     } catch (err) {
-      logError("lumous-register / cancel orphaned registrations", err);
+      logError("axion-register / cancel orphaned registrations", err);
       return NextResponse.json(
         {
           message:
@@ -389,7 +407,7 @@ if (confirmedMemberParticipations.length > 0) {
     // ── 8b. Final safety guard before write ──────────────────────────────────
     if (isTeamRegistration && !teamData?.name?.trim()) {
       console.error(
-        "[lumous-register] teamData.name missing before write — should not happen"
+        "[axion-register] teamData.name missing before write — should not happen"
       );
       return NextResponse.json(
         { message: "Team name is required for team events." },
@@ -412,7 +430,7 @@ if (confirmedMemberParticipations.length > 0) {
       });
 
       console.log(
-        `[lumous-register] Registration created: ${registration.id} | Status: ${registration.status}`
+        `[axion-register] Registration created: ${registration.id} | Status: ${registration.status}`
       );
 
       let teamId: string | null = null;
@@ -437,7 +455,7 @@ if (confirmedMemberParticipations.length > 0) {
         });
 
         teamId = teamRecord.id;
-        console.log(`[lumous-register] Team upserted: "${teamName}" | ID: ${teamId}`);
+        console.log(`[axion-register] Team upserted: "${teamName}" | ID: ${teamId}`);
 
         // 9c. Member participants + participations
         for (const member of normalizedMembers) {
@@ -449,6 +467,10 @@ if (confirmedMemberParticipations.length > 0) {
               email:         `${member.usn.toLowerCase()}@pending.techfest`,
               emailVerified: false,
               phoneNo:       member.phone ?? undefined,
+              gender:        member.gender,
+              collegeName:   member.collegeName,
+              year:          member.year,
+              department:    member.department,
             },
             update: {
               name:    member.name,
@@ -465,7 +487,7 @@ if (confirmedMemberParticipations.length > 0) {
             },
           });
 
-          console.log(`[lumous-register] Member participation created: ${member.usn}`);
+          console.log(`[axion-register] Member participation created: ${member.usn}`);
         }
       }
 
@@ -479,7 +501,7 @@ if (confirmedMemberParticipations.length > 0) {
         },
       });
 
-      console.log(`[lumous-register] Leader participation created: ${usn}`);
+      console.log(`[axion-register] Leader participation created: ${usn}`);
 
       // 9e. Payment record
       await prisma.payment.create({
@@ -494,10 +516,10 @@ if (confirmedMemberParticipations.length > 0) {
       });
 
       console.log(
-        `[lumous-register] Payment record created for registration: ${registration.id}`
+        `[axion-register] Payment record created for registration: ${registration.id}`
       );
     } catch (err) {
-      logError("lumous-register / create records", err);
+      logError("axion-register / create records", err);
 
       // Manual rollback — undo everything written before the failure point
       if (registration?.id) {
@@ -510,7 +532,7 @@ if (confirmedMemberParticipations.length > 0) {
         const target = (err as any)?.meta?.target
           ? ` (conflict on: ${JSON.stringify((err as any).meta.target)})`
           : "";
-        console.error(`[lumous-register] P2002 unique constraint${target}`);
+        console.error(`[axion-register] P2002 unique constraint${target}`);
         return NextResponse.json(
           {
             message: `A registration conflict occurred. A team member may already be registered for this event. Please check all USNs and try again.`,
@@ -549,13 +571,13 @@ if (confirmedMemberParticipations.length > 0) {
 
       try {
         await transporter.sendMail({
-          from:    `"Vertex - Lumous 2026" <${process.env.SMTP_USER}>`,
+          from:    `"Vertex - InnoVerse 2026" <${process.env.SMTP_USER}>`,
           to:      email,
-          subject: `Lumous 2026 — ${event.name} Registration Confirmed ✅`,
+          subject: `InnoVerse 2026 — ${event.name} Registration Confirmed ✅`,
           html: `
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#222">
               <h2 style="color:#4f46e5">Hello from Vertex 🚀</h2>
-              <p>Your registration for <strong>${event.name}</strong> (Lumous 2026) has been
+              <p>Your registration for <strong>${event.name}</strong> (InnoVerse 2026) has been
                  <strong style="color:green">confirmed</strong>.</p>
               <p>This event is <strong>free of charge</strong> — no payment required.</p>
 
@@ -585,24 +607,24 @@ if (confirmedMemberParticipations.length > 0) {
               </p>
 
               <p style="margin-top:24px;font-size:12px;color:#888">
-                — Team Vertex | Lumous 2026
+                — Team Vertex | InnoVerse 2026
               </p>
             </div>
           `,
         });
-        console.log(`[lumous-register] Confirmation email sent to: ${email}`);
+        console.log(`[axion-register] Confirmation email sent to: ${email}`);
       } catch (mailErr) {
         // Email failure must NOT fail the registration — just log and continue
-        logError("lumous-register / send confirmation email", mailErr);
+        logError("axion-register / send confirmation email", mailErr);
         console.warn(
-          `[lumous-register] Email failed but registration succeeded: ${registration.id}`
+          `[axion-register] Email failed but registration succeeded: ${registration.id}`
         );
       }
     }
 
     // ── 11. Success ──────────────────────────────────────────────────────────
     console.log(
-      `[lumous-register] SUCCESS | registrationId: ${registration.id} | amount: ${totalAmount}`
+      `[axion-register] SUCCESS | registrationId: ${registration.id} | amount: ${totalAmount}`
     );
 
     return NextResponse.json(
@@ -615,7 +637,7 @@ if (confirmedMemberParticipations.length > 0) {
     );
   } catch (error: unknown) {
     // Outermost catch — only unexpected errors reach here (e.g. malformed JSON)
-    logError("lumous-register / outer catch", error);
+    logError("axion-register / outer catch", error);
 
     const code = (error as any)?.code as string | undefined;
 

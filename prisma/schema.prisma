@@ -116,6 +116,10 @@ model Participant {
   phoneNo        String?
   email          String          
   emailVerified  Boolean         @default(false)
+  gender         String
+  collegeName    String
+  year           String
+  department     String
   participations Participation[]
   registrations  Registration[]
   ledTeams       Team[]          @relation("TeamLeader")
@@ -148,14 +152,14 @@ model Team {
 
 model Participation {
   id              String       @id @default(auto()) @map("_id") @db.ObjectId
-  participant     Participant  @relation(fields: [participantId], references: [id])
-  participantId   String       @db.ObjectId
+  participant     Participant?  @relation(fields: [participantId], references: [id])
+  participantId   String?       @db.ObjectId
   event           Event        @relation(fields: [eventId], references: [id])
   eventId         String       @db.ObjectId
   team            Team?        @relation(fields: [teamId], references: [id])
   teamId          String?      @db.ObjectId
-  registration    Registration @relation(fields: [registrationId], references: [id])
-  registrationId  String       @db.ObjectId
+  registration    Registration? @relation(fields: [registrationId], references: [id])
+  registrationId  String?       @db.ObjectId
   createdAt       DateTime     @default(now())
 
   @@unique([participantId, eventId])
