@@ -5,14 +5,17 @@ import posthog from 'posthog-js'
 
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    posthog.init(
-      process.env.NEXT_PUBLIC_POSTHOG_KEY!,
-      {
-        api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-        capture_pageview: true,
-      }
-    )
-  }, [])
+    const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    if (posthogKey) {
+      posthog.init(
+        posthogKey,
+        {
+          api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+          capture_pageview: true,
+        }
+      );
+    }
+  }, []);
 
   return <>{children}</>
 }

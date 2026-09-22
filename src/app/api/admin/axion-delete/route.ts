@@ -1,4 +1,4 @@
-// app/api/admin/lumous-delete/route.ts
+// app/api/admin/axion-delete/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -41,28 +41,30 @@ export async function DELETE(req: Request) {
 
       const regId = teamParticipation.registrationId;
 
-      console.log(`[admin/lumous-delete] Deleting team: ${teamId} | regId: ${regId}`);
+      console.log(`[admin/axion-delete] Deleting team: ${teamId} | regId: ${regId}`);
 
       // Delete in order: participations → payment → registration → team
       const deletedParticipations = await prisma.participation.deleteMany({
         where: { teamId },
       });
-      console.log(`[admin/lumous-delete] Deleted ${deletedParticipations.count} participation(s)`);
+      console.log(`[admin/axion-delete] Deleted ${deletedParticipations.count} participation(s)`);
 
-      await prisma.payment.deleteMany({
-        where: { registrationId: regId },
-      });
-      console.log(`[admin/lumous-delete] Deleted payment for reg: ${regId}`);
+      if (regId) {
+        await prisma.payment.deleteMany({
+          where: { registrationId: regId },
+        });
+        console.log(`[admin/axion-delete] Deleted payment for reg: ${regId}`);
 
-      await prisma.registration.delete({
-        where: { id: regId },
-      });
-      console.log(`[admin/lumous-delete] Deleted registration: ${regId}`);
+        await prisma.registration.delete({
+          where: { id: regId },
+        });
+        console.log(`[admin/axion-delete] Deleted registration: ${regId}`);
+      }
 
       await prisma.team.delete({
         where: { id: teamId },
       });
-      console.log(`[admin/lumous-delete] Deleted team: ${teamId}`);
+      console.log(`[admin/axion-delete] Deleted team: ${teamId}`);
 
       return NextResponse.json(
         { message: "Team and all related records deleted successfully." },
@@ -91,23 +93,23 @@ export async function DELETE(req: Request) {
         );
       }
 
-      console.log(`[admin/lumous-delete] Deleting solo registration: ${registrationId}`);
+      console.log(`[admin/axion-delete] Deleting solo registration: ${registrationId}`);
 
       // Delete in order: participations → payment → registration
       const deletedParticipations = await prisma.participation.deleteMany({
         where: { registrationId },
       });
-      console.log(`[admin/lumous-delete] Deleted ${deletedParticipations.count} participation(s)`);
+      console.log(`[admin/axion-delete] Deleted ${deletedParticipations.count} participation(s)`);
 
       await prisma.payment.deleteMany({
         where: { registrationId },
       });
-      console.log(`[admin/lumous-delete] Deleted payment for reg: ${registrationId}`);
+      console.log(`[admin/axion-delete] Deleted payment for reg: ${registrationId}`);
 
       await prisma.registration.delete({
         where: { id: registrationId },
       });
-      console.log(`[admin/lumous-delete] Deleted registration: ${registrationId}`);
+      console.log(`[admin/axion-delete] Deleted registration: ${registrationId}`);
 
       return NextResponse.json(
         { message: "Registration deleted successfully." },
@@ -121,7 +123,7 @@ export async function DELETE(req: Request) {
     );
   } catch (error: unknown) {
     const err = error as any;
-    console.error("[admin/lumous-delete] ERROR:", err?.code, err?.message);
+    console.error("[admin/axion-delete] ERROR:", err?.code, err?.message);
 
     if (err?.code === "P2025") {
       return NextResponse.json(

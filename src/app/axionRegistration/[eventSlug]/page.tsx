@@ -7,6 +7,7 @@ import {
   useRef,
   ChangeEvent,
 } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -15,6 +16,10 @@ interface TeamMember {
   name: string;
   usn: string;
   phone: string;
+  gender: string;
+  collegeName: string;
+  year: string;
+  department: string;
 }
 
 interface FormState {
@@ -22,6 +27,10 @@ interface FormState {
   usn: string;
   email: string;
   phone: string;
+  gender: string;
+  collegeName: string;
+  year: string;
+  department: string;
   eventSlug: string;
   teamName: string;
   teamMembers: TeamMember[];
@@ -31,6 +40,10 @@ interface MemberError {
   name: string;
   usn: string;
   phone: string;
+  gender: string;
+  collegeName: string;
+  year: string;
+  department: string;
 }
 
 interface FormErrors {
@@ -38,6 +51,10 @@ interface FormErrors {
   usn: string;
   email: string;
   phone: string;
+  gender: string;
+  collegeName: string;
+  year: string;
+  department: string;
 }
 
 type EmailVerificationStatus =
@@ -72,6 +89,7 @@ interface EventItem {
   max?: number;
   exact?: number;
   note?: string;
+  rules?: string[];
 }
 
 interface RegisterApiResponse {
@@ -84,47 +102,77 @@ interface RegisterApiResponse {
 
 const EVENTS: EventItem[] = [
   {
-    slug: "bgmi", label: "BGMI", icon: "🎮",
-    category: "Technical / Fun",
-    feeType: "per_team", fee: 50,
-    min: 1, max: 4,
-    note: "₹50 per team · Max 4 members",
-  },
-
-  {
-    slug: "reeluminati", label: "Reeluminati", icon: "🎬",
-    category: "Technical / Fun",
-    feeType: "free", fee: 0,
-    min: 1, max: 4,
-    note: "Max 4 members · Free",
-  },
-  {
-    slug: "volleyball", label: "Volleyball (Girls)", icon: "🏐",
-    category: "Sports",
+    slug: "hardware-expo", label: "Hardware Expo", icon: "💡",
+    category: "Technical",
     feeType: "per_team", fee: 100,
-    min: 6, max: 9,
-    note: "6(Playing)+3(Optional Substitutes) members · ₹100 per team · Upto 8 teams only (First Come First Serve)",
+    min: 2, max: 4,
+    note: "2–4 members · ₹100 per team · Finalists: Top 20 teams",
+    rules: [
+      "Tracks: 1) Intelligent Systems & Automation (Robotics, Edge AI & TinyML, Sustainable Tech). 2) Open Innovation.",
+      "Round 1 (Online Screening): 5-slide PDF presentation (Problem Statement, Hardware Block Diagram, Core Components), 1-minute working demonstration video, and complete Bill of Materials (BOM) with total cost.",
+      "Round 2 (Hardware Expo Finale): Top 20 teams present physical working prototypes. Evaluation includes Live Demo, Hardware Integration, and Firmware.",
+      "Originality & Build: Projects must be built from the ground up by the team. Arduino, ESP32, STM32, and custom mechatronics permitted. Off-the-shelf plug-and-play assembled kits are prohibited.",
+      "Live Demo Mandate: The hardware must physically function during evaluation. Pure simulations or pre-recorded demos of non-working builds are disqualified.",
+      "Circuitry Inspection: Internal wiring and circuitry must remain accessible for judges to inspect.",
+      "Safety: Exposed 220V AC wiring is strictly prohibited. High-current battery packs must be wired safely.",
+      "Judging Criteria: Prototype Functionality (25%), Technical Complexity (25%), Build & Design Quality (20%), Innovation, Cost & Applicability (15%), Presentation & Pitch (15%).",
+      "Refer brochure for detailed rules.",
+      "Event Coordinator: Dhruva J H - 6361536637"
+    ]
   },
   {
-    slug: "lagori", label: "Lagori", icon: "🪨",
-    category: "90's Playground Classics",
-    feeType: "free", fee: 0,
-    exact: 6,
-    note: "Exactly 6 members (3 boys + 3 girls) · Free",
+    slug: "protopitch", label: "Hardware Expo", icon: "💡",
+    category: "Technical",
+    feeType: "per_team", fee: 100,
+    min: 2, max: 4,
+    note: "2–4 members · ₹100 per team · Finalists: Top 20 teams",
+    rules: [
+      "Tracks: 1) Intelligent Systems & Automation (Robotics, Edge AI & TinyML, Sustainable Tech). 2) Open Innovation.",
+      "Round 1 (Online Screening): 5-slide PDF presentation, 1-minute working demonstration video, and BOM.",
+      "Round 2 (Hardware Expo Finale): Top 20 teams present physical working prototypes. Evaluation includes Live Demo, Hardware Integration, and Firmware.",
+      "Originality & Build: Projects must be built from the ground up by the team. Fully assembled plug-and-play kits are prohibited.",
+      "Safety: Exposed 220V AC wiring is prohibited. High-current battery packs must be wired safely.",
+      "Judging Criteria: Prototype Functionality (25%), Technical Complexity (25%), Build & Design Quality (20%), Innovation, Cost & Applicability (15%), Presentation & Pitch (15%).",
+      "Refer brochure for detailed rules.",
+      "Event Coordinator: Dhruva J H - 6361536637"
+    ]
   },
   {
-    slug: "dodgeball", label: "Dodgeball", icon: "🔴",
-    category: "90's Playground Classics",
-    feeType: "free", fee: 0,
-    exact: 6,
-    note: "Exactly 6 members (3 boys + 3 girls) · Free",
-  },
-  {
-    slug: "cooking", label: "Creative Bites: No Fire Edition", icon: "🍳",
-    category: "Fun Activity",
-    feeType: "per_team", fee: 50,
+    slug: "embedded-enigma", label: "Embedded Enigma", icon: "🧩",
+    category: "Technical",
+    feeType: "per_team", fee: 150,
     exact: 2,
-    note: "Exactly 2 members · ₹50 per team",
+    note: "Strictly 2 members · ₹150 per team",
+    rules: [
+      "Format: Intense 4-round challenge solving unannounced puzzles, troubleshooting physical circuits, and decoding mystery firmware against a strict clock.",
+      "Provided Equipment: Only materials, components, and tools provided by organizers may be used.",
+      "Hardware Ban: Bringing outside hardware, pre-built circuits, or personal tools into the event area is prohibited.",
+      "Strictly Unplugged: Phones, laptops, tablets, and smartwatches must remain stowed throughout active rounds.",
+      "Team Communication: Teams may communicate only with their registered teammate.",
+      "Fair Play: Completed solutions must be verified by an organizer before proceeding.",
+      "Punctuality: Latecomers will not receive additional time.",
+      "Refer brochure for detailed rules.",
+      "Event Coordinators: Jyothika S (8310325378), Shreyas J (8762485683)"
+    ]
+  },
+  {
+    slug: "vector-chase", label: "Vector Chase", icon: "🤖",
+    category: "Robotics",
+    feeType: "per_team", fee: 100,
+    min: 2, max: 3,
+    note: "2–3 members · ₹100 per team",
+    rules: [
+      "Challenge: High-speed line-following challenge. Strictly a line follower challenge, not a line-maze solver.",
+      "Bot Specifications: Max dimensions 25 cm × 25 cm × 25 cm (±2 cm tolerance). Max weight: 2.5 kg.",
+      "Power & Autonomy: Onboard power supply only (max 12V DC). 100% autonomous. Bluetooth, Wi-Fi, RF, and manual control prohibited.",
+      "Wheels: Only standard rubber wheels or treads permitted. Sticky adhesives, sprays, or chemicals are prohibited.",
+      "Component Lock: Once cleared through technical inspection, major components cannot be replaced with different specs.",
+      "Trials & Timing: 3 official trials. Best timing counts for leaderboard. 3-minute setup window; 3-minute max trial duration.",
+      "Touches: Max 3 human touches/restarts allowed. Bot restarts from last cleared checkpoint.",
+      "Track: Non-reflective flex banner/matte poster, 30mm line thickness, line inversion (white/black), sharp intersections, crossovers, U/C/S curves.",
+      "Refer brochure for detailed rules.",
+      "Event Coordinator: Aditya Venkatesh - 9740768828"
+    ]
   }
 ];
 
@@ -134,18 +182,22 @@ const CATEGORIES = [...new Set(EVENTS.map((e) => e.category))];
 
 const USN_REGEX = /^1ds\d{2}[a-z]{2}\d{3}$/i;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const STORAGE_KEY = "lumos_reg_form_v2";
+const STORAGE_KEY = "axion_reg_form_v2";
 const OTP_LENGTH = 6;
 const RESEND_SECS = 30;
 const MAX_SS_MB = 5;
 
-const defaultMember = (): TeamMember => ({ name: "", usn: "", phone: "" });
+const defaultMember = (): TeamMember => ({ name: "", usn: "", phone: "", gender: "", collegeName: "", year: "", department: "" });
 
 const defaultForm: FormState = {
   fullName: "",
   usn: "",
   email: "",
   phone: "",
+  gender: "",
+  collegeName: "",
+  year: "",
+  department: "",
   eventSlug: "",
   teamName: "",
   teamMembers: [],
@@ -213,6 +265,10 @@ const validateUSN = (v: string) => !v ? "USN is required" : !/^1ds/i.test(v) ? "
 const validateName = (v: string) => !v.trim() ? "Required" : "";
 const validateEmail = (v: string) => !v ? "Required" : !EMAIL_REGEX.test(v) ? "Invalid email" : "";
 const validatePhone = (v: string) => !v?.trim() ? "Required" : v.replace(/\D/g, "").length !== 10 ? "10 digits required" : "";
+const validateGender = (v: string) => !["Male", "Female", "Other", "Prefer not to say"].includes(v) ? "Required" : "";
+const validateCollege = (v: string) => v.trim().length < 3 ? "Min 3 chars" : "";
+const validateYear = (v: string) => !["1", "2", "3", "4"].includes(v) ? "Required" : "";
+const validateDept = (v: string) => !v.trim() ? "Required" : "";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
@@ -232,7 +288,7 @@ async function apiVerifyOtp(email: string, otp: string) {
   if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d?.message ?? "Invalid OTP"); }
 }
 
-async function apiRegister(form: FormState): Promise<RegisterApiResponse> {
+async function apiRegister(form: FormState, eventSlug: string): Promise<RegisterApiResponse> {
   const hasMembers = form.teamMembers.length > 0;
   const hasTeamName = form.teamName.trim().length > 0;
 
@@ -241,7 +297,12 @@ async function apiRegister(form: FormState): Promise<RegisterApiResponse> {
     usn:       form.usn,
     email:     form.email,
     phone:     form.phone,
-    eventSlug: form.eventSlug,
+    gender:    form.gender,
+    collegeName: form.collegeName,
+    year:      form.year,
+    department: form.department,
+    eventSlug: eventSlug,
+    teamName: hasTeamName ? form.teamName : "Solo",
   };
 
   if (hasMembers) {
@@ -251,11 +312,15 @@ async function apiRegister(form: FormState): Promise<RegisterApiResponse> {
         name:  m.name,
         usn:   m.usn,
         phone: m.phone,
+        gender: m.gender,
+        collegeName: m.collegeName,
+        year: m.year,
+        department: m.department,
       })),
     };
   }
 
-  const res = await fetch("/api/lumous-register", {
+  const res = await fetch("/api/axion-register", {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify(body),
@@ -531,9 +596,22 @@ function SuccessScreen({ email, eventName, onReset }: { email: string; eventName
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function LumousRegistrationPage() {
+export default function InnoVerseRegistrationPage() {
+  const params = useParams();
+  const router = useRouter();
+  const eventSlug = params.eventSlug as string;
+
   const [form, setForm] = useState<FormState>(defaultForm);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const validEvent = EVENTS.find(e => e.slug === eventSlug);
+    if (!validEvent) {
+      router.push("/axionRegistration");
+    } else {
+      setForm(f => ({ ...f, eventSlug }));
+    }
+  }, [eventSlug, router]);
 
   // FIX: renamed from `ev` to `emailVerif` to avoid collision with event loop vars
   const [emailVerif, setEmailVerif] = useState<EmailVerificationState>({ status: "idle", message: "", resendCooldown: 0 });
@@ -558,7 +636,7 @@ export default function LumousRegistrationPage() {
   }, [form, flow]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const selectedEvent = EVENTS.find(e => e.slug === form.eventSlug);
+  const selectedEvent = EVENTS.find(e => e.slug === eventSlug);
   const totalMembers = 1 + form.teamMembers.length;
   const totalPaise = calcAmount(selectedEvent, totalMembers);
   const sizeErr = selectedEvent ? teamSizeError(selectedEvent, totalMembers) : "";
@@ -580,21 +658,29 @@ export default function LumousRegistrationPage() {
     usn: validateUSN(form.usn),
     email: validateEmail(form.email),
     phone: validatePhone(form.phone),
+    gender: validateGender(form.gender),
+    collegeName: validateCollege(form.collegeName),
+    year: validateYear(form.year),
+    department: validateDept(form.department),
   };
 
   const memberErrors: MemberError[] = form.teamMembers.map(m => ({
     name: validateName(m.name),
     usn: validateUSN(m.usn),
     phone: validatePhone(m.phone),
+    gender: validateGender(m.gender),
+    collegeName: validateCollege(m.collegeName),
+    year: validateYear(m.year),
+    department: validateDept(m.department),
   }));
 
   const isFormValid =
     !errors.fullName && !errors.usn && !errors.email && !errors.phone &&
+    !errors.gender && !errors.collegeName && !errors.year && !errors.department &&
     emailVerif.status === "verified" &&
-    !!form.eventSlug &&
     !sizeErr &&
     !teamNameErr &&
-    memberErrors.every(e => !e.name && !e.usn && !e.phone);
+    memberErrors.every(e => !e.name && !e.usn && !e.phone && !e.gender && !e.collegeName && !e.year && !e.department);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const patch = useCallback((p: Partial<FormState>) => setForm(f => ({ ...f, ...p })), []);
@@ -672,12 +758,12 @@ export default function LumousRegistrationPage() {
   // ── Submit ────────────────────────────────────────────────────────────────
   const submit = async () => {
     // FIX: touch all fields on submit so all errors surface simultaneously
-    setTouched({ fullName: true, usn: true, email: true, phone: true, teamName: true });
+    setTouched({ fullName: true, usn: true, email: true, phone: true, gender: true, collegeName: true, year: true, department: true, teamName: true });
     touchAllMembers();
     if (!isFormValid) return;
     setFlow("creating_registration"); setFlowErr("");
     try {
-      const data = await apiRegister(form);
+      const data = await apiRegister(form, eventSlug);
       setRegId(data.registrationId); setRegAmount(data.amount); setRegEventName(data.eventName);
       if (data.amount === 0) { localStorage.removeItem(STORAGE_KEY); setFlow("success"); }
       else setFlow("awaiting_screenshot");
@@ -700,8 +786,7 @@ export default function LumousRegistrationPage() {
   const grouped = CATEGORIES.map(cat => ({ cat, events: EVENTS.filter(e => e.category === cat) }));
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center px-4 py-14"
-      style={{ backgroundImage: "radial-gradient(ellipse 100% 60% at 50% 0%, rgba(251,191,36,0.06), transparent 70%)" }}>
+  <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center px-4 py-14">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
         .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
@@ -715,50 +800,14 @@ export default function LumousRegistrationPage() {
         <motion.div initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-10">
           <div className="inline-flex items-center gap-2 border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-full mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            Registrations Open
+            {selectedEvent ? `Registering for ${selectedEvent.label}` : "Registrations Open"}
           </div>
-          <h1 className="font-display text-6xl sm:text-7xl text-white mb-2 leading-none">
-            LUMOS <span className="text-amber-400">2026</span>
+          <h1 className="font-display text-5xl sm:text-7xl text-white mb-2 leading-none uppercase">
+            {selectedEvent ? selectedEvent.label : <>AXION <span className="text-amber-400">2026</span></>}
           </h1>
-          <p className="text-zinc-500 text-sm">Event Registration · Dayananda Sagar College</p>
+          <p className="text-zinc-400 text-sm">{selectedEvent ? selectedEvent.category : "INNOVATE • BUILD • CONQUER"} · Dayananda Sagar College of Engineering</p>
         </motion.div>
 
-        {/* ── Notice ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="mb-6 bg-amber-950/20 border border-amber-700/20 rounded-2xl px-5 py-5 space-y-4"
-        >
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px]">ℹ</span>
-            <p className="text-amber-300 text-[11px] font-semibold uppercase tracking-widest">Important</p>
-          </div>
-
-          <a
-            href="https://drive.google.com/file/d/1DTBWmRSt2gY8iDVAYTbsmnojs7weL9Jt/view?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between w-full px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 rounded-xl transition-all duration-200 group"
-          >
-            <span className="flex items-center gap-2.5 text-amber-200 text-sm font-medium">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-base">📄</span>
-              View Event Brochure
-            </span>
-            <span className="text-amber-400/70 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all duration-200 text-sm">↗</span>
-          </a>
-
-          <ul className="text-amber-200/70 text-[13px] space-y-2.5 list-none leading-relaxed">
-            <li className="flex gap-2"><span className="text-amber-500/60 shrink-0">→</span><span><strong className="text-amber-200/90">One registration = one event.</strong> If you want to register for multiple events, please register separately for each event.</span></li>
-            <li className="flex gap-2"><span className="text-amber-500/60 shrink-0">→</span><span>Read all rules before registering. Team size limits are strictly enforced.</span></li>
-<li className="flex gap-2"><span className="text-amber-500/60 shrink-0">→</span><span>Prize pool for Non-technical Events will be informed later via website and social media.</span></li>
-          </ul>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3 border-t border-amber-800/20 text-[12px] text-amber-400/50">
-            <span className="text-amber-400/70 font-medium">Queries</span>
-            <a href="tel:8334072002" className="hover:text-amber-300 transition-colors">📞 Naman Singh — 8334072002</a>
-            <span className="hidden sm:inline text-amber-800/40">|</span>
-            <a href="tel:8867429955" className="hover:text-amber-300 transition-colors">📞 Shefali — 8867429955</a>
-          </div>
-        </motion.div>
 
         {/* ── Card ── */}
         <motion.div
@@ -868,12 +917,61 @@ export default function LumousRegistrationPage() {
                         <Input id="usn" type="text" placeholder="1DS23ET045" value={form.usn}
                           onChange={e => patch({ usn: e.target.value })} onBlur={() => touch("usn")} maxLength={10} />
                       </Field>
+                      {/* FIX: phone field now shows in readiness checklist and errors are visible */}
+                      <Field label="Phone" id="phone" required error={touched.phone ? errors.phone : ""}>
+                        <Input id="phone" type="tel" placeholder="10-digit number" value={form.phone}
+                          onChange={e => patch({ phone: e.target.value })} onBlur={() => touch("phone")} />
+                      </Field>
+                      <Field label="Gender" id="gender" required error={touched.gender ? errors.gender : ""}>
+                        <select id="gender" value={form.gender} onChange={e => patch({ gender: e.target.value })} onBlur={() => touch("gender")} className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30">
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                          <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                      </Field>
+                      <Field label="College Name" id="collegeName" required error={touched.collegeName ? errors.collegeName : ""}>
+                        <Input id="collegeName" type="text" placeholder="e.g. Dayananda Sagar" value={form.collegeName} onChange={e => patch({ collegeName: e.target.value })} onBlur={() => touch("collegeName")} />
+                      </Field>
+                      <Field label="Year" id="year" required error={touched.year ? errors.year : ""}>
+                        <select id="year" value={form.year} onChange={e => patch({ year: e.target.value })} onBlur={() => touch("year")} className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30">
+                          <option value="">Select Year</option>
+                          <option value="1">1st Year</option>
+                          <option value="2">2nd Year</option>
+                          <option value="3">3rd Year</option>
+                          <option value="4">4th Year</option>
+                        </select>
+                      </Field>
+                      <Field label="Department" id="department" required error={touched.department ? errors.department : ""}>
+                        <select id="department" value={form.department} onChange={e => patch({ department: e.target.value })} onBlur={() => touch("department")} className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30">
+                          <option value="">Select Department</option>
+                          {[
+                            { value: "AIML", label: "AIML - Artificial Intelligence & Machine Learning" },
+                            { value: "CSE", label: "CSE - Computer Science & Engineering" },
+                            { value: "CSE-CS", label: "CSE-CS - Computer Science (Cyber Security)" },
+                            { value: "CSE-DS", label: "CSE-DS - Computer Science (Data Science)" },
+                            { value: "CSD", label: "CSD - Computer Science & Design" },
+                            { value: "ISE", label: "ISE - Information Science & Engineering" },
+                            { value: "ECE", label: "ECE - Electronics & Communication Engineering" },
+                            { value: "ETE", label: "ETE - Electronics & Telecommunication Engineering" },
+                            { value: "EEE", label: "EEE - Electrical & Electronics Engineering" },
+                            { value: "EIE", label: "EIE - Electronics & Instrumentation Engineering" },
+                            { value: "RAI", label: "RAI - Robotics & Artificial Intelligence" },
+                            { value: "AE", label: "AE - Aeronautical Engineering" },
+                            { value: "AUTO", label: "AUTO - Automobile Engineering" },
+                            { value: "BT", label: "BT - Biotechnology" },
+                            { value: "CHEM", label: "CHEM - Chemical Engineering" },
+                            { value: "CIVIL", label: "CIVIL - Civil Engineering" },
+                            { value: "ME", label: "ME - Mechanical Engineering" },
+                            { value: "MEE", label: "MEE - Medical Electronics Engineering" },
+                            { value: "CSE-IoT", label: "CSE-IoT - CSE (IoT, Cyber Security & Blockchain)" },
+                          ].map(d => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                        </select>
+                      </Field>
                     </div>
-                    {/* FIX: phone field now shows in readiness checklist and errors are visible */}
-                    <Field label="Phone" id="phone" required error={touched.phone ? errors.phone : ""}>
-                      <Input id="phone" type="tel" placeholder="10-digit number" value={form.phone}
-                        onChange={e => patch({ phone: e.target.value })} onBlur={() => touch("phone")} />
-                    </Field>
                   </Block>
 
                   {/* 2. Email Verification */}
@@ -933,48 +1031,8 @@ export default function LumousRegistrationPage() {
                     )}
                   </Block>
 
-                  {/* 3. Event Selection */}
-                  <Block title="Select Event" icon="🎯">
-                    <p className="text-xs text-zinc-600 -mt-2">Choose one event to register for.</p>
-
-                    <div className="flex flex-col gap-6">
-                      {grouped.map(({ cat, events }) => (
-                        <div key={cat}>
-                          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-600 mb-3">{cat}</p>
-                          <div className="flex flex-col gap-2">
-                            {events.map(eventItem => {
-                              const sel = form.eventSlug === eventItem.slug;
-                              const isFree = eventItem.feeType === "free" || eventItem.fee === 0;
-                              return (
-                                <motion.label
-                                  key={eventItem.slug} whileTap={{ scale: 0.98 }}
-                                  className={`relative flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 ${sel ? "bg-amber-500/10 border-amber-500/40 shadow-[0_0_20px_-4px_rgba(245,158,11,0.15)]" : "bg-zinc-800/30 border-zinc-800/60 hover:bg-zinc-800/50 hover:border-zinc-700/80"}`}
-                                >
-                                  <input type="radio" name="event" className="sr-only" checked={sel} onChange={() => handleEventChange(eventItem.slug)} />
-                                  <div className={`mt-0.5 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${sel ? "border-amber-400 bg-amber-400" : "border-zinc-600"}`}>
-                                    {sel && <div className="w-2 h-2 rounded-full bg-black" />}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-base">{eventItem.icon}</span>
-                                      <span className={`text-sm font-semibold ${sel ? "text-amber-200" : "text-zinc-300"}`}>{eventItem.label}</span>
-                                      {isFree && (
-                                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">Free</span>
-                                      )}
-                                      {!isFree && (
-                                        <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">₹{eventItem.fee}</span>
-                                      )}
-                                    </div>
-                                    <p className={`text-xs leading-relaxed ${sel ? "text-amber-300/60" : "text-zinc-500"}`}>{eventItem.note}</p>
-                                  </div>
-                                </motion.label>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
+                  {/* 3. Event Summary */}
+                  <Block title="Event Summary" icon="🎯">
                     {/* Fee preview */}
                     <AnimatePresence>
                       {selectedEvent && (
@@ -1067,7 +1125,7 @@ export default function LumousRegistrationPage() {
                                       <button onClick={() => removeMember(i)} className="text-xs text-red-500 hover:text-red-400 transition-colors">Remove</button>
                                     )}
                                   </div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                                     {/* FIX: member errors now surface on submit via touchAllMembers() */}
                                     <Field label="Name" id={`mn-${i}`} required error={touched[`m${i}`] ? memberErrors[i]?.name : undefined}>
                                       <Input id={`mn-${i}`} type="text" placeholder="Full name" value={m.name}
@@ -1083,6 +1141,59 @@ export default function LumousRegistrationPage() {
                                       <Input id={`mp-${i}`} type="tel" placeholder="10-digit" value={m.phone}
                                         onChange={e => updateMember(i, "phone", e.target.value)}
                                         onBlur={() => setTouched(p => ({ ...p, [`m${i}`]: true }))} />
+                                    </Field>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                    <Field label="Gender" id={`mg-${i}`} required error={touched[`m${i}`] ? memberErrors[i]?.gender : undefined}>
+                                      <select id={`mg-${i}`} value={m.gender} onChange={e => updateMember(i, "gender", e.target.value)} onBlur={() => setTouched(p => ({ ...p, [`m${i}`]: true }))} className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30">
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                        <option value="Prefer not to say">Prefer not to say</option>
+                                      </select>
+                                    </Field>
+                                    <Field label="College Name" id={`mc-${i}`} required error={touched[`m${i}`] ? memberErrors[i]?.collegeName : undefined}>
+                                      <Input id={`mc-${i}`} type="text" placeholder="e.g. Dayananda Sagar" value={m.collegeName} onChange={e => updateMember(i, "collegeName", e.target.value)} onBlur={() => setTouched(p => ({ ...p, [`m${i}`]: true }))} />
+                                    </Field>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <Field label="Year" id={`my-${i}`} required error={touched[`m${i}`] ? memberErrors[i]?.year : undefined}>
+                                      <select id={`my-${i}`} value={m.year} onChange={e => updateMember(i, "year", e.target.value)} onBlur={() => setTouched(p => ({ ...p, [`m${i}`]: true }))} className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30">
+                                        <option value="">Select Year</option>
+                                        <option value="1">1st Year</option>
+                                        <option value="2">2nd Year</option>
+                                        <option value="3">3rd Year</option>
+                                        <option value="4">4th Year</option>
+                                      </select>
+                                    </Field>
+                                    <Field label="Department" id={`md-${i}`} required error={touched[`m${i}`] ? memberErrors[i]?.department : undefined}>
+                                      <select id={`md-${i}`} value={m.department} onChange={e => updateMember(i, "department", e.target.value)} onBlur={() => setTouched(p => ({ ...p, [`m${i}`]: true }))} className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30">
+                                        <option value="">Select Department</option>
+                                        {[
+                                          { value: "AIML", label: "AIML - Artificial Intelligence & Machine Learning" },
+                                          { value: "CSE", label: "CSE - Computer Science & Engineering" },
+                                          { value: "CSE-CS", label: "CSE-CS - Computer Science (Cyber Security)" },
+                                          { value: "CSE-DS", label: "CSE-DS - Computer Science (Data Science)" },
+                                          { value: "CSD", label: "CSD - Computer Science & Design" },
+                                          { value: "ISE", label: "ISE - Information Science & Engineering" },
+                                          { value: "ECE", label: "ECE - Electronics & Communication Engineering" },
+                                          { value: "ETE", label: "ETE - Electronics & Telecommunication Engineering" },
+                                          { value: "EEE", label: "EEE - Electrical & Electronics Engineering" },
+                                          { value: "EIE", label: "EIE - Electronics & Instrumentation Engineering" },
+                                          { value: "RAI", label: "RAI - Robotics & Artificial Intelligence" },
+                                          { value: "AE", label: "AE - Aeronautical Engineering" },
+                                          { value: "AUTO", label: "AUTO - Automobile Engineering" },
+                                          { value: "BT", label: "BT - Biotechnology" },
+                                          { value: "CHEM", label: "CHEM - Chemical Engineering" },
+                                          { value: "CIVIL", label: "CIVIL - Civil Engineering" },
+                                          { value: "ME", label: "ME - Mechanical Engineering" },
+                                          { value: "MEE", label: "MEE - Medical Electronics Engineering" },
+                                          { value: "CSE-IoT", label: "CSE-IoT - CSE (IoT, Cyber Security & Blockchain)" },
+                                        ].map(d => (
+                                          <option key={d.value} value={d.value}>{d.label}</option>
+                                        ))}
+                                      </select>
                                     </Field>
                                   </div>
                                 </motion.div>
@@ -1120,9 +1231,12 @@ export default function LumousRegistrationPage() {
                       {[
                         [!errors.fullName && !!form.fullName, "Full name"],
                         [!errors.usn && !!form.usn, "USN"],
-                        [!errors.phone && !!form.phone, "Phone"],          // FIX: was missing
+                        [!errors.phone && !!form.phone, "Phone"],
+                        [!errors.gender && !!form.gender, "Gender"],
+                        [!errors.collegeName && !!form.collegeName, "College Name"],
+                        [!errors.year && !!form.year, "Year"],
+                        [!errors.department && !!form.department, "Department"],
                         [emailVerif.status === "verified", "Email verified"],
-                        [!!form.eventSlug, "Event selected"],
                         ...(showTeamSection ? [
                           [!teamNameErr || !hasTeammates, "Team name"],
                           [!sizeErr && form.teamMembers.length >= minTm, "Team size valid"],
@@ -1159,7 +1273,7 @@ export default function LumousRegistrationPage() {
           </div>
         </motion.div>
 
-        <p className="text-center text-zinc-700 text-xs mt-6">Lumos 2026 · Vertex · Dayananda Sagar College</p>
+        <p className="text-center text-zinc-600 text-xs mt-6">AXION 2026 · Vertex · Dayananda Sagar College of Engineering</p>
       </div>
     </div>
   );

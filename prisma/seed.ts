@@ -1,26 +1,85 @@
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
-
+import { EventType } from "@prisma/client";
 async function main() {
-  console.log("🌱 Seeding Admin...");
+  console.log("🌱 Seeding events...");
 
-  const admin = await prisma.admin.create({
-    data: {
-      usn: "1DS23ET101",
-      emailId: "shefalibadgi@gmail.com",
-      phoneNo: "9876543210",
+  await prisma.event.upsert({
+    where: { slug: "reeluminati" },
+    update: {},
+    create: {
+      slug: "reeluminati",
+      name: "Reeluminati",
+      type: EventType.TEAM,
+      price: 0,
     },
   });
 
-  console.log("✅ Admin created:", admin);
+  await prisma.event.upsert({
+    where: { slug: "hardware-expo" },
+    update: {
+      name: "Hardware Expo",
+      price: 10000, // ₹100
+    },
+    create: {
+      slug: "hardware-expo",
+      name: "Hardware Expo",
+      type: EventType.TEAM,
+      price: 10000, // ₹100
+    },
+  });
+
+  await prisma.event.upsert({
+    where: { slug: "protopitch" },
+    update: {
+      name: "Hardware Expo",
+      price: 10000, // ₹100
+    },
+    create: {
+      slug: "protopitch",
+      name: "Hardware Expo",
+      type: EventType.TEAM,
+      price: 10000, // ₹100
+    },
+  });
+
+  await prisma.event.upsert({
+    where: { slug: "embedded-enigma" },
+    update: {
+      name: "Embedded Enigma",
+      price: 15000, // ₹150
+    },
+    create: {
+      slug: "embedded-enigma",
+      name: "Embedded Enigma",
+      type: EventType.TEAM,
+      price: 15000, // ₹150 per team
+    },
+  });
+
+  await prisma.event.upsert({
+    where: { slug: "vector-chase" },
+    update: {
+      name: "Vector Chase",
+      price: 10000, // ₹100
+    },
+    create: {
+      slug: "vector-chase",
+      name: "Vector Chase",
+      type: EventType.TEAM,
+      price: 10000, // ₹100 per team
+    },
+  });
+
+  console.log("✅ Seeding completed!");
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Error while seeding:", e);
-    process.exit(1);
+  .then(async () => {
+    await prisma.$disconnect();
   })
-  .finally(async () => {
+  .catch(async (e) => {
+    console.error(e);
     await prisma.$disconnect();
   });

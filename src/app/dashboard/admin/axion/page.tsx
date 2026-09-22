@@ -1,7 +1,8 @@
-// app/dashboard/admin/lumous/page.tsx
+// app/dashboard/admin/axion/page.tsx
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+import ActionButtons from "./ActionButtons";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,10 @@ interface MemberDetail {
   usn: string;
   email: string;
   phoneNo: string | null;
+  gender: string;
+  collegeName: string;
+  year: string;
+  department: string;
   isLeader: boolean;
 }
 
@@ -41,6 +46,10 @@ interface SoloEntry {
     usn: string;
     email: string;
     phoneNo: string | null;
+    gender: string;
+    collegeName: string;
+    year: string;
+    department: string;
   };
 }
 
@@ -149,18 +158,45 @@ function MemberRow({ member }: { member: MemberDetail }) {
           {member.email}
         </a>
       </div>
+      <div className="w-full sm:w-auto mt-2 sm:mt-0 flex flex-wrap gap-2 text-[10px] text-zinc-500 bg-zinc-50 px-2 py-1 rounded">
+        <span><span className="font-semibold">Col:</span> {member.collegeName}</span>
+        <span><span className="font-semibold">Dept:</span> {member.department}</span>
+        <span><span className="font-semibold">Yr:</span> {member.year}</span>
+        <span><span className="font-semibold">Gen:</span> {member.gender}</span>
+      </div>
     </li>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function LumousAdminPage() {
+export default async function axionAdminPage() {
+  try {
+    return await axionAdminPageContent();
+  } catch (error: any) {
+    console.error("axionAdminPage Error:", error);
+    return (
+      <div className="p-10 bg-red-50 text-red-600 min-h-screen">
+        <h1 className="text-2xl font-bold">Admin Page Error</h1>
+        <p className="mt-2 text-sm">Please screenshot this and send it to the developer:</p>
+        <pre className="mt-4 p-4 bg-red-100 rounded text-xs overflow-auto border border-red-200">
+          {error?.message || "Unknown error"}
+          {"\n\n"}
+          {error?.stack}
+        </pre>
+      </div>
+    );
+  }
+}
+
+async function axionAdminPageContent() {
 
   // ── Query ──────────────────────────────────────────────────────────────────
   // Fetch all participations (all statuses) so admin can see pending too.
   // We show registration status badge on each card so admin knows what's confirmed.
+  const AXION_SLUGS = ["hardware-expo", "embedded-enigma", "vector-chase"];
   const eventsData = await prisma.event.findMany({
+    where: { slug: { in: AXION_SLUGS } },
     orderBy: { createdAt: "asc" },
     include: {
       teams: {
@@ -209,7 +245,7 @@ export default async function LumousAdminPage() {
         if (!teamsMap.has(p.teamId)) {
           teamsMap.set(p.teamId, {
             id:                 p.teamId,
-            teamName:           p.team.name,
+            teamName:           p.team?.name ?? "Unknown Team",
             leaderId:           leaderMap.get(p.teamId) ?? "",
             screenshotUrl,
             ssUploaded,
@@ -231,12 +267,16 @@ export default async function LumousAdminPage() {
         }
 
         team.members.push({
-          id:       p.participant.id,
-          name:     p.participant.name,
-          usn:      p.participant.usn,
-          email:    p.participant.email,
-          phoneNo:  p.participant.phoneNo ?? null,
-          isLeader: p.participant.id === team.leaderId,
+          id:          p.participant?.id ?? "unknown",
+          name:        p.participant?.name ?? "Unknown Participant",
+          usn:         p.participant?.usn ?? "N/A",
+          email:       p.participant?.email ?? "N/A",
+          phoneNo:     p.participant?.phoneNo ?? null,
+          gender:      p.participant?.gender ?? "N/A",
+          collegeName: p.participant?.collegeName ?? "N/A",
+          year:        p.participant?.year ?? "N/A",
+          department:  p.participant?.department ?? "N/A",
+          isLeader:    p.participant?.id === team.leaderId,
         });
       } else {
         solos.push({
@@ -248,11 +288,15 @@ export default async function LumousAdminPage() {
           registrationStatus,
           paymentStatus,
           participant: {
-            id:      p.participant.id,
-            name:    p.participant.name,
-            usn:     p.participant.usn,
-            email:   p.participant.email,
-            phoneNo: p.participant.phoneNo ?? null,
+            id:          p.participant?.id ?? "unknown",
+            name:        p.participant?.name ?? "Unknown Participant",
+            usn:         p.participant?.usn ?? "N/A",
+            email:       p.participant?.email ?? "N/A",
+            phoneNo:     p.participant?.phoneNo ?? null,
+            gender:      p.participant?.gender ?? "N/A",
+            collegeName: p.participant?.collegeName ?? "N/A",
+            year:        p.participant?.year ?? "N/A",
+            department:  p.participant?.department ?? "N/A",
           },
         });
       }
@@ -299,10 +343,10 @@ export default async function LumousAdminPage() {
         {/* ── Header ── */}
         <header className="border-b border-zinc-200 pb-6">
           <h1 className="text-3xl font-black text-zinc-900 tracking-tight">
-            Lumous 2026 — Registrations
+            Axion 2026 — Registrations
           </h1>
           <p className="text-zinc-500 mt-1 text-sm">
-            All registrations across all events · All statuses shown
+            All registrations across Axion events · All statuses shown
           </p>
 
           {/* Summary pills */}
@@ -395,6 +439,9 @@ export default async function LumousAdminPage() {
                                     ? `₹${team.amountPaid} · ${team.paymentStatus}`
                                     : "FREE"}
                                 </span>
+                                {team.paymentStatus === "PENDING" && team.amountPaid > 0 && team.ssUploaded && (
+                                  <ActionButtons registrationId={team.registrationId} />
+                                )}
                               </div>
                             </div>
 
@@ -439,6 +486,7 @@ export default async function LumousAdminPage() {
                             <th className="px-4 py-3">Participant</th>
                             <th className="px-4 py-3">USN</th>
                             <th className="px-4 py-3">Contact</th>
+                            <th className="px-4 py-3">Details</th>
                             <th className="px-4 py-3">Amount</th>
                             <th className="px-4 py-3">Reg Status</th>
                             <th className="px-4 py-3">Pay Status</th>
@@ -472,6 +520,14 @@ export default async function LumousAdminPage() {
                                   {solo.participant.email}
                                 </a>
                               </td>
+                              <td className="px-4 py-3 text-[10px] text-zinc-500 leading-tight">
+                                <div className="max-w-[120px] truncate" title={solo.participant.collegeName}>
+                                  <span className="font-semibold text-zinc-700">Col:</span> {solo.participant.collegeName}
+                                </div>
+                                <div><span className="font-semibold text-zinc-700">Dept:</span> {solo.participant.department}</div>
+                                <div><span className="font-semibold text-zinc-700">Yr:</span> {solo.participant.year}</div>
+                                <div><span className="font-semibold text-zinc-700">Gen:</span> {solo.participant.gender}</div>
+                              </td>
                               <td className="px-4 py-3 font-bold whitespace-nowrap">
                                 {solo.amountPaid > 0 ? (
                                   <span className="text-emerald-600">₹{solo.amountPaid}</span>
@@ -492,6 +548,9 @@ export default async function LumousAdminPage() {
                                 >
                                   {solo.paymentStatus}
                                 </span>
+                                {solo.paymentStatus === "PENDING" && solo.amountPaid > 0 && solo.ssUploaded && (
+                                  <div className="mt-2"><ActionButtons registrationId={solo.registrationId} /></div>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 {solo.amountPaid === 0 ? (
