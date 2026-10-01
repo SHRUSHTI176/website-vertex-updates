@@ -33,7 +33,7 @@ const socials = [
 
 const Contact = () => {
   return (
-    <section id="contact" className="relative w-full overflow-hidden bg-[#080808]">
+    <section className="relative w-full overflow-hidden bg-[#080808]">
       {/* Top divider */}
       <div className="h-px w-full bg-white/[0.06]" />
 
