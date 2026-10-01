@@ -16,6 +16,10 @@ import {
   Tag
 } from "lucide-react";
 
+// All Axion events register through this one Google Form.
+const REGISTRATION_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSdmLckTP8mgkT92LfYL51obCIu0XFNT3v1D3YoagVwUqmSn7w/viewform?usp=dialog";
+
 export default function AxionEventHub() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [showGeneralGuidelines, setShowGeneralGuidelines] = useState(false);
@@ -261,7 +265,7 @@ export default function AxionEventHub() {
 
                 {/* Register Button */}
                 <div className="mt-4">
-                <Link href="https://partner.mentorlink.in/en/application-form/qsMTpIDnjO"
+                <Link href={REGISTRATION_FORM_URL}
                target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full"
@@ -400,7 +404,7 @@ export default function AxionEventHub() {
                 {/* Register Button */}
                 <div className="mt-4">
                   <Link
-  href="https://partner.mentorlink.in/en/application-form/qsMTpIDnjO"
+  href={REGISTRATION_FORM_URL}
   target="_blank"
   rel="noopener noreferrer"
   className="block w-full"
@@ -556,7 +560,7 @@ export default function AxionEventHub() {
                 {/* Register Button */}
                 <div className="mt-4">
                   <Link
-                 href="https://partner.mentorlink.in/en/application-form/qsMTpIDnjO"
+                 href={REGISTRATION_FORM_URL}
                  target="_blank"
                  rel="noopener noreferrer"
                  className="block w-full">
