@@ -6,9 +6,13 @@ import {
   useTransform,
   useMotionValueEvent,
 } from "motion/react";
+import { ChevronDown } from "lucide-react";
 
 const TOTAL_FRAMES = 298;
 const BG = "#0a0a0a";
+// Visitors read the first frame as a paused video and never scroll, so the
+// hint stays up until they're this far into the 400vh intro.
+const HINT_HIDE_AT = 0.03;
 
 function frameSrc(i: number) {
   return `/HeroVideo/ezgif-frame-${String(i + 1).padStart(3, "0")}.jpg`;
@@ -23,6 +27,7 @@ export default function ChipScroll() {
   const frameIdxRef = useRef(-1);
   const rafRef = useRef(0);
   const targetRef = useRef(0);
+  const [showHint, setShowHint] = useState(true);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -102,6 +107,10 @@ export default function ChipScroll() {
     return () => window.removeEventListener("resize", onResize);
   }, [paint]);
 
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    setShowHint(v < HINT_HIDE_AT);
+  });
+
   useMotionValueEvent(frameIndex, "change", (v) => {
     targetRef.current = v;
     if (!rafRef.current) {
@@ -165,6 +174,31 @@ export default function ChipScroll() {
           style={{ background: BG }}
         />
 
+        {/* Scroll hint. Clicking it nudges the page so the intro starts playing. */}
+        {loaded && (
+          <button
+            type="button"
+            onClick={() =>
+              window.scrollBy({ top: window.innerHeight, behavior: "smooth" })
+            }
+            aria-hidden={!showHint}
+            tabIndex={showHint ? 0 : -1}
+            className={`absolute inset-x-0 bottom-8 mx-auto flex w-fit flex-col items-center gap-1 px-4 py-2 text-white/90 transition-opacity duration-500 hover:text-white ${
+              showHint ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+            // svh keeps it above mobile browser toolbars; browsers without svh
+            // drop this and fall back to the bottom-8 class.
+            style={{ bottom: "calc(100vh - 100svh + 2rem)" }}
+          >
+            <span className="text-base font-medium sm:text-lg">
+              Scroll to explore
+            </span>
+            <ChevronDown
+              className="h-6 w-6 motion-safe:animate-bounce"
+              aria-hidden="true"
+            />
+          </button>
+        )}
       </div>
     </section>
     </>
