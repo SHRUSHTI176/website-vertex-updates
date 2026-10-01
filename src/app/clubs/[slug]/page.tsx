@@ -423,7 +423,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
         )}
 
         <div className="text-center mt-16">
-          <a href="/#clubs" className="inline-block text-violet-400 hover:underline animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+          <a href="/#domains" className="inline-block text-violet-400 hover:underline animate-fade-in-up" style={{animationDelay: '0.6s'}}>
             &larr; Back to all clubs
           </a>
         </div>
