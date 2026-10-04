@@ -326,7 +326,7 @@ export default function AxionEventHub() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span><strong className="text-white">Format:</strong> 4 Elimination Rounds</span>
+                      <span><strong className="text-white">Format:</strong> 3 Elimination Rounds</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-amber-400 shrink-0" />

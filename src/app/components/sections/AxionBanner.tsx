@@ -72,7 +72,7 @@ export default function AxionBanner() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="mb-10 text-red-400/90 font-medium text-sm flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-lg"
         >
-          <span>⏳</span> Registrations strictly close on October 3rd
+          <span>⏳</span> Registrations strictly close on October 9th
         </motion.div>
 
         {/* CTA Buttons */}
